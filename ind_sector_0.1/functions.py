@@ -6,6 +6,9 @@ Created on Feb 1, 2015
 
 import pandas as pd
 import numpy as np
+import scipy.stats as stats
+import random as rnd
+
 
 
 
@@ -59,3 +62,106 @@ def predict_t(df_in, corr):
     return df_pred
 
 
+def replace_outs(df, numOuts, df_outs_ind):
+    """
+    This has been replaced with "replace_outs2"
+    """
+    df_out = df.copy()
+    out_row_inds, out_col_inds = np.random.randint(0, len(df_outs_ind.index), numOuts), \
+                                 np.random.randint(0, len(df_outs_ind.columns), numOuts)
+
+    for row, col in zip(out_row_inds, out_col_inds):
+        array_col = df.iloc[:, col].dropna()
+        z_score, p_val = stats.normaltest(array_col)
+
+        if p_val > 0.05:  # this means the distribution is normal
+            eps = 0.002 * np.random.random_sample(1) - 0.001  # epsilon is a random float in [-0.001, 0.001]
+                                                                # *** this threshold should be set in experiments
+            df_out.iloc[row, col] = 3 * df.iloc[:, col].std() + eps
+            # print("for row {0} and column {1} we have {2} and real val is {3}".format(row, col, df_out.iloc[row, col], df_in.iloc[row, col]))
+            df_outs_ind.iloc[row, col] = 1
+
+        else:
+            q1, q3, iqr = tukey_vals(array_col)
+            tukeyHL = [array_col.mean() + q3 + (3 * iqr), array_col.mean() - q1 - (3 * iqr)]
+            df_out.iloc[row, col] = rnd.sample(tukeyHL, 1)
+            df_outs_ind.iloc[row, col] = 1
+
+    return df_out, df_outs_ind
+
+
+def tukey_vals(lst_in):
+    """
+    Arg:
+        input array of numbers
+    Return:
+        Tukey's Q1, Q3 and IQR
+    """
+    try:
+        np.sum(lst_in)
+    except TypeError:
+        print('Error: you must provide a list or array of only numbers')
+    q1 = stats.scoreatpercentile(lst_in[~np.isnan(lst_in)], 25)
+    q3 = stats.scoreatpercentile(lst_in[~np.isnan(lst_in)], 75)
+    iqr = q3 - q1
+    return q1, q3, iqr
+
+
+def replace_outs2(df, df_outs_ind, outs_ratio):
+    """
+    Args:
+        df: dataframe representing the input dataset
+        df_outs_ind: a matrix of 0/1 representing index of injected outliers before calling this function
+        outs_ratio: the ratio of data points that should be replaced with outliers in each window
+    Return:
+        df_out: a dataframe that includes injected outliers in the input data
+        df_outs_ind: a dataframe of 0/1 representing index of injected outliers after calling this function
+
+    """
+    df_out = df.copy()
+    n_outs = int(outs_ratio * df.count().sum())
+    out_indx, out_cols = np.random.choice(df.index, n_outs), np.random.choice(df.columns, n_outs)
+
+    for row, col in zip(out_indx, out_cols):
+        array_col = df.loc[:, col].dropna()
+        z_score, p_val = stats.normaltest(array_col)
+
+        if p_val > 0.05:  # this means the distribution is normal
+            eps = 0.002 * np.random.random_sample(1) - 0.001  # epsilon is a random float in [-0.001, 0.001]
+                                                                # *** this threshold should be set in experiments
+            #eps += 1000 # this was for testing
+            df_out.loc[row, col] = 3 * df.loc[:, col].std() + eps
+            # print("for row {0} and column {1} we have {2} and real val is {3}".format(row, col, df_out.iloc[row, col], df_in.iloc[row, col]))
+            df_outs_ind.loc[row, col] = 1
+
+        else:
+            q1, q3, iqr = tukey_vals(array_col)
+            tukeyHL = [array_col.mean() + q3 + (3 * iqr), array_col.mean() - q1 - (3 * iqr)]
+            df_out.loc[row, col] = rnd.sample(tukeyHL, 1)
+            df_outs_ind.loc[row, col] = 1
+
+    return df_out, df_outs_ind
+
+
+def get_pred_outs(preds, df_in):
+    """
+    Args:
+        preds: dataframe representing prediction values
+        df_in: dataframe representing input data
+    Return:
+        df_TF: a dataframe of 0/1 representing index of data points that are predicted as outliers
+    """
+    df_dist = get_dist(df_in, preds)
+
+    df_TF = df_in.copy()
+    df_TF.fillna(0, inplace=True)
+    df_TF[np.isfinite(df_TF)] = 0
+
+    for col in df_dist.columns:
+        for indx in df_dist.index:
+            if df_dist[col].loc[indx] > df_in[col].std():
+                df_TF[col].loc[indx] = 1
+                #print(col, indx, df_TF[col].loc[indx])
+            #print(indx, col, df_dist.loc[indx, col], df_in[col].std())
+
+    return df_TF
