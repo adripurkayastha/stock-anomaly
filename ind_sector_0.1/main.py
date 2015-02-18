@@ -29,7 +29,7 @@ df = pd.read_csv(filePath + fileName,
 
 xstart, xend = 1, 20
 df1 = (df.ix[xstart:xend, 1:5])
-
+df1 = df
 
 """ calculate returns
     NOTE: make sure the last day is the first row in the input dataset is sorted"""
@@ -45,11 +45,13 @@ df_with_outs = df3.copy()
 df_outs_ind = df_in.copy()
 df_outs_ind[pd.notnull(df_outs_ind)] = 0
 
-win_size = 9  # this is set by the input to the algo
+win_size = 30  # this is set by the input to the algo (very early tests was using winsize 9)
+
 n_chops = int(len(df_no_outs.index) / win_size)
 
 df4 = df3.iloc[:-win_size, :]
 lst_sub_df_starts = np.random.choice(df4.index, n_chops)
+
 
 for sub in lst_sub_df_starts:
     df_sub_start = np.where(df3.index == sub)[0][0]  # we asume the index is unique (i.e. no duplicate datetime)
@@ -63,24 +65,60 @@ for sub in lst_sub_df_starts:
         df_with_outs.loc[inx] = df_sub_out.loc[inx]
 
 
+# store and retrieve the object inout data with artificial outliers
+import pickle
+data1 = df_with_outs, df_outs_ind
+output = open('data.pkl', 'wb')
+pickle.dump(data1, output)
+pkl_file = open('data.pkl', 'rb')
+data1 = pickle.load(pkl_file)
 
-# centroid calculation:
-centroid = pd.Series(df3.mean(axis=1), index=df3.index)  # mean of each row
 
-# add centroid to the data frame
-df_corr = df3.copy()
-df_corr['centroid'] = centroid
-df_corr = df_corr.corr()
+pred_outs_inds = df_in.copy()
+pred_outs_inds[pd.notnull(pred_outs_inds)] = 0
 
-corr_series = df_corr['centroid']
+strt = 6  # start from the 4th row (i.e. 6-2) row of the input dataframe
+while strt < len(df3.index) - win_size:
+    strt -= 2
+    # call kg prediction for current df
+    df_sub = df3.loc[strt: strt+win_size, :]
+    sub_preds_inds = kg_pred(df_sub)[0]
 
-df_error = df3.copy()
-df_preds = fn.predict_t(df3, corr_series)
-pred_outs = fn.get_pred_outs(df_preds, df3)
+    # update df_inds
+    for inx in sub_preds_inds.index:
+        pred_outs_inds.loc[inx] = sub_preds_inds.loc[inx]
 
+    strt += win_size
 
 print(df_with_outs)
 print(df_outs_ind)
+fn.get_fmeasure(df_outs_ind, pred_outs_inds)
+
+
+
+def kg_pred(df_sub):
+    df = df_sub
+    # centroid calculation:
+    centroid = pd.Series(df.mean(axis=1), index=df.index)  # mean of each row
+
+    # add centroid to the data frame
+    df_corr = df.copy()
+    df_corr['centroid'] = centroid
+    df_corr = df_corr.corr()
+    corr_series = df_corr['centroid']
+
+    df_error = df.copy() # should be removed
+    sub_preds = fn.predict_t(df, corr_series)
+    sub_pred_outs_inds = fn.get_pred_outs(sub_preds, df)
+    return sub_pred_outs_inds, sub_preds
+
+
+
+
+
+
+
+
 
 
 

@@ -9,6 +9,7 @@ import numpy as np
 import scipy.stats as stats
 import random as rnd
 
+from sklearn.metrics import classification_report, recall_score, precision_score
 
 
 
@@ -124,12 +125,15 @@ def replace_outs2(df, df_outs_ind, outs_ratio):
 
     for row, col in zip(out_indx, out_cols):
         array_col = df.loc[:, col].dropna()
+
+        if len(array_col) < 9:
+            continue
         z_score, p_val = stats.normaltest(array_col)
 
         if p_val > 0.05:  # this means the distribution is normal
             eps = 0.002 * np.random.random_sample(1) - 0.001  # epsilon is a random float in [-0.001, 0.001]
                                                                 # *** this threshold should be set in experiments
-            #eps += 1000 # this was for testing
+            # eps += 1000 # this was for testing
             df_out.loc[row, col] = 3 * df.loc[:, col].std() + eps
             # print("for row {0} and column {1} we have {2} and real val is {3}".format(row, col, df_out.iloc[row, col], df_in.iloc[row, col]))
             df_outs_ind.loc[row, col] = 1
@@ -137,7 +141,7 @@ def replace_outs2(df, df_outs_ind, outs_ratio):
         else:
             q1, q3, iqr = tukey_vals(array_col)
             tukeyHL = [array_col.mean() + q3 + (3 * iqr), array_col.mean() - q1 - (3 * iqr)]
-            df_out.loc[row, col] = rnd.sample(tukeyHL, 1)
+            df_out.loc[row, col] = rnd.sample(tukeyHL, 1)[0]
             df_outs_ind.loc[row, col] = 1
 
     return df_out, df_outs_ind
@@ -165,3 +169,25 @@ def get_pred_outs(preds, df_in):
             #print(indx, col, df_dist.loc[indx, col], df_in[col].std())
 
     return df_TF
+
+
+def get_fmeasure(df, df_preds):
+    y = df_to_arr(df)# these are df.values
+    y_hat = df_to_arr(df_preds)# this would be the predictions
+
+    target_names = [0, 1]
+    report = classification_report(y, y_hat, target_names)
+    print(classification_report(y, y_hat, target_names))
+
+    rec = recall_score(y, y_hat, target_names)
+    prec = precision_score(y, y_hat, target_names)
+    # print(prec, rec)
+
+
+def df_to_arr(df):
+    arr = []
+    for col in df.columns:
+        for ix in df.index:
+            arr.append(df[col].loc[ix])
+
+    return arr
