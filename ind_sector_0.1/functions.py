@@ -177,11 +177,11 @@ def get_fmeasure(df, df_preds):
 
     target_names = [0, 1]
     report = classification_report(y, y_hat, target_names)
-    print(classification_report(y, y_hat, target_names))
+    print(report)
 
-    rec = recall_score(y, y_hat, target_names)
-    prec = precision_score(y, y_hat, target_names)
-    # print(prec, rec)
+    rec = recall_score(y, y_hat)
+    prec = precision_score(y, y_hat)
+    return prec, rec
 
 
 def df_to_arr(df):
@@ -191,3 +191,20 @@ def df_to_arr(df):
             arr.append(df[col].loc[ix])
 
     return arr
+
+
+def kg_pred(df_sub):
+    df = df_sub
+    # centroid calculation:
+    centroid = pd.Series(df.mean(axis=1), index=df.index)  # mean of each row
+
+    # add centroid to the data frame
+    df_corr = df.copy()
+    df_corr['centroid'] = centroid
+    df_corr = df_corr.corr()
+    corr_series = df_corr['centroid']
+
+    df_error = df.copy() # should be removed
+    sub_preds = predict_t(df, corr_series)
+    sub_pred_outs_inds = get_pred_outs(sub_preds, df)
+    return sub_pred_outs_inds, sub_preds

@@ -27,9 +27,11 @@ df = pd.read_csv(filePath + fileName,
                  sep=',', header=0, parse_dates=[0], dayfirst=True,
                  index_col=0, skiprows=[0, 1, 2, 4])
 
-xstart, xend = 1, 20
+# xstart, xend = 1, 20
+xstart, xend = 0, 500
 df1 = (df.ix[xstart:xend, 1:5])
-df1 = df
+# df1 = df
+outs_ratio = 0.1 # 0.005
 
 """ calculate returns
     NOTE: make sure the last day is the first row in the input dataset is sorted"""
@@ -58,7 +60,7 @@ for sub in lst_sub_df_starts:
     df_sub_end = df_sub_start + win_size
     df_sub_in = df_no_outs.iloc[df_sub_start:df_sub_end, :].copy()
 
-    df_sub_out, df_outs_ind = fn.replace_outs2(df_sub_in, df_outs_ind, 0.1)
+    df_sub_out, df_outs_ind = fn.replace_outs2(df_sub_in, df_outs_ind, outs_ratio)
     #print(df_sub_out, df_outs_ind)
 
     for inx in df_sub_out.index:
@@ -66,12 +68,12 @@ for sub in lst_sub_df_starts:
 
 
 # store and retrieve the object inout data with artificial outliers
-import pickle
+"""import pickle
 data1 = df_with_outs, df_outs_ind
 output = open('data.pkl', 'wb')
 pickle.dump(data1, output)
 pkl_file = open('data.pkl', 'rb')
-data1 = pickle.load(pkl_file)
+data1 = pickle.load(pkl_file)"""
 
 
 pred_outs_inds = df_in.copy()
@@ -81,36 +83,24 @@ strt = 6  # start from the 4th row (i.e. 6-2) row of the input dataframe
 while strt < len(df3.index) - win_size:
     strt -= 2
     # call kg prediction for current df
-    df_sub = df3.loc[strt: strt+win_size, :]
-    sub_preds_inds = kg_pred(df_sub)[0]
+    df_sub = df3.iloc[strt: strt+win_size, :]
+    sub_preds_inds = fn.kg_pred(df_sub)[0]
 
     # update df_inds
     for inx in sub_preds_inds.index:
         pred_outs_inds.loc[inx] = sub_preds_inds.loc[inx]
 
+    print("at indx = {0} date = {1} out of {2}".format(strt, df3.iloc[strt].index, len(df3.index)/win_size))
     strt += win_size
 
-print(df_with_outs)
-print(df_outs_ind)
-fn.get_fmeasure(df_outs_ind, pred_outs_inds)
+
+# print(df_with_outs)
+# print(df_outs_ind)
+prec, rec = fn.get_fmeasure(df_outs_ind, pred_outs_inds)
+print(prec, rec)
 
 
 
-def kg_pred(df_sub):
-    df = df_sub
-    # centroid calculation:
-    centroid = pd.Series(df.mean(axis=1), index=df.index)  # mean of each row
-
-    # add centroid to the data frame
-    df_corr = df.copy()
-    df_corr['centroid'] = centroid
-    df_corr = df_corr.corr()
-    corr_series = df_corr['centroid']
-
-    df_error = df.copy() # should be removed
-    sub_preds = fn.predict_t(df, corr_series)
-    sub_pred_outs_inds = fn.get_pred_outs(sub_preds, df)
-    return sub_pred_outs_inds, sub_preds
 
 
 
