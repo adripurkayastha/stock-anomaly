@@ -10,6 +10,8 @@ import scipy.stats as stats
 import random as rnd
 
 from sklearn.metrics import classification_report, recall_score, precision_score
+from sklearn.neighbors import NearestNeighbors
+import statsmodels.tsa.api as tsa
 
 
 
@@ -211,8 +213,6 @@ def kg_pred(df_sub):
 
 
 def knn_preds(df, df_knn_inds, k=4):
-    from sklearn.neighbors import NearestNeighbors
-
     for idx in df.index:
         # X = df.loc[idx].values
         row = df.loc[idx]
@@ -243,3 +243,29 @@ def knn_preds(df, df_knn_inds, k=4):
                 df_knn_inds[row_ind].loc[idx] = 1
 
     return df_knn_inds
+
+
+def arima_pred(df, arima_inds):
+
+    arima_preds = df.copy()
+    for col in df.columns:
+
+        arr = df[col].dropna().values
+
+        arma = tsa.ARMA(arr, order=(0, 1, 0))
+        results = arma.fit()
+        res = results.predict(0, len(arr)-1)
+
+        for item, ind in zip(res, arima_preds.index):
+            if np.isnan(arima_preds[col].loc[ind]):
+                continue
+            arima_preds[col].loc[ind] = item
+
+        ts = arima_preds[col]
+        mu = ts.mean()
+        sigma = ts.std()
+        for idx in ts.index:
+            if ts.loc[idx] > 3 * sigma + mu:    # could be changed to 2*sigma + mu
+                arima_inds[col].loc[idx] = 1
+
+    return arima_inds
