@@ -208,3 +208,38 @@ def kg_pred(df_sub):
     sub_preds = predict_t(df, corr_series)
     sub_pred_outs_inds = get_pred_outs(sub_preds, df)
     return sub_pred_outs_inds, sub_preds
+
+
+def knn_preds(df, df_knn_inds, k=4):
+    from sklearn.neighbors import NearestNeighbors
+
+    for idx in df.index:
+        # X = df.loc[idx].values
+        row = df.loc[idx]
+
+        row2 = row.dropna()
+
+        X = row2.values
+
+        if len(X) < k:
+            continue
+
+        X_tmp = np.reshape(X, (len(X), 1))  # convert X to a 2D array
+        X_2D = np.zeros((len(X), 2))
+        X_2D[:, 1:] = X_tmp  #  X_2D includes values of tickers at one time stamp (e.g. values of WALT DISNEY  COMCAST 'A'  HOME DEPOT  at 2014-04-14 )
+
+        nbrs = NearestNeighbors(n_neighbors=k, algorithm='ball_tree').fit(X_2D)
+        distances, indices = nbrs.kneighbors(X_2D)
+        # print(indices)
+        # print(distances)
+
+        # dists = scp.spatial.distance.cdist(X_2D, X_2D, 'euclidean')
+        sum_arr = distances.sum(axis=1) #  sum over rows gives sum kNN for each ticker (e.g. "WALT DISNEY")
+                                    # at timestamp idx
+        mu = sum_arr.mean()
+        sigma = sum_arr.std()
+        for sum, row_ind in zip(sum_arr, row2.index):
+            if sum > 3 * sigma + mu: # could be changed to 2*sigma + mu
+                df_knn_inds[row_ind].loc[idx] = 1
+
+    return df_knn_inds
