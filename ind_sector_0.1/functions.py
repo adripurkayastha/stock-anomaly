@@ -239,7 +239,7 @@ def knn_preds(df, df_knn_inds, k=4):
         mu = sum_arr.mean()
         sigma = sum_arr.std()
         for sum, row_ind in zip(sum_arr, row2.index):
-            if sum > 3 * sigma + mu: # could be changed to 2*sigma + mu
+            if sum > 1 * sigma + mu: # could be changed to 2*sigma + mu
                 df_knn_inds[row_ind].loc[idx] = 1
 
     return df_knn_inds
@@ -269,3 +269,28 @@ def arima_pred(df, arima_inds):
                 arima_inds[col].loc[idx] = 1
 
     return arima_inds
+
+
+def arima_pred2(df, arima_inds):
+
+
+    # arima_preds = df.copy()
+    for col in df.columns:
+        sigma = df[col].std()
+        mu = df[col].mean()
+
+        pred = df[col].copy()
+        for ind in df[col].index:
+            pred.loc[ind] = df[col].loc[ind] + np.random.normal(mu, sigma)
+
+        arima_preds = pred.shift(1)
+
+        for ind in arima_preds.index:
+            if arima_preds[ind] > 3 * sigma + mu:    # could be changed to 2*sigma + mu
+                arima_inds[col].loc[ind] = 1
+
+    return arima_inds
+
+
+def f2(p,r):
+    return 5 * p * r / ((4*p)+r)

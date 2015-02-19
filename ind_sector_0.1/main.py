@@ -27,11 +27,11 @@ df = pd.read_csv(filePath + fileName,
                  sep=',', header=0, parse_dates=[0], dayfirst=True,
                  index_col=0, skiprows=[0, 1, 2, 4])
 
-# xstart, xend = 1, 20
-xstart, xend = 0, 500
+
+xstart, xend = 0, 500  # xstart, xend = 1, 20
 df1 = (df.ix[xstart:xend, 1:5])
 # df1 = df
-outs_ratio = 0.1 # 0.005
+outs_ratio = 0.1   # 0.005
 
 """ calculate returns
     NOTE: make sure the last day is the first row in the input dataset is sorted"""
@@ -50,8 +50,8 @@ df_outs_ind[df_outs_ind.isnull()] = 0
 
 # set outlier index for all prediction methods to 0
 pred_outs_inds = df_outs_ind.copy()
-df_kdd_ind = df_outs_ind.copy()
-df_arima_ind = df_outs_ind.copy()
+df_knn_inds = df_outs_ind.copy()
+df_arima_inds = df_outs_ind.copy()
 
 win_size = 30  # this is set by the input to the algo (very early tests was using winsize 9)
 
@@ -96,14 +96,32 @@ while strt < len(df3.index) - win_size:
     for inx in sub_preds_inds.index:
         pred_outs_inds.loc[inx] = sub_preds_inds.loc[inx]
 
+    # call kNN and Random Walk for current df
+    df_knn_inds = fn.knn_preds(df_sub, df_knn_inds, k=4)
+    df_arima_inds = fn.arima_pred2(df_sub, df_arima_inds)
+
     print("at indx = {0} date = {1} out of {2}".format(strt, df3.iloc[strt].index, len(df3.index)/win_size))
     strt += win_size
 
 
-# print(df_with_outs)
-# print(df_outs_ind)
-prec, rec = fn.get_fmeasure(df_outs_ind, pred_outs_inds)
-print(prec, rec)
+kg_prec, kg_rec = fn.get_fmeasure(df_outs_ind, pred_outs_inds)
+kg_f2 = fn.f2(kg_prec, kg_rec)
+
+knn_prec, knn_rec = fn.get_fmeasure(df_outs_ind, df_knn_inds)
+knn_f2 = fn.f2(knn_prec, knn_rec)
+
+arima_prec, arima_rec = fn.get_fmeasure(df_outs_ind, df_arima_inds)
+arima_f2 = fn.f2 (arima_prec, arima_rec)
+
+print("               precision\t\t\trecall\t\t\tF2")
+print("kg             {0}\t\t{1}\t\t{2}\n"
+      "kNN            {3}\t\t{4}\t\t{5}\n"
+      "RandomWalk     {6}\t\t{7}\t\t{8}\n".format(kg_prec, kg_rec, kg_f2,
+                                                    knn_prec, knn_rec, knn_f2,
+                                                    arima_prec, arima_rec, arima_f2))
+
+
+
 
 
 
