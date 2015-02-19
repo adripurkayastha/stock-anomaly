@@ -46,6 +46,12 @@ df_with_outs = df3.copy()
 
 df_outs_ind = df_in.copy()
 df_outs_ind[pd.notnull(df_outs_ind)] = 0
+df_outs_ind[df_outs_ind.isnull()] = 0
+
+# set outlier index for all prediction methods to 0
+pred_outs_inds = df_outs_ind.copy()
+df_kdd_ind = df_outs_ind.copy()
+df_arima_ind = df_outs_ind.copy()
 
 win_size = 30  # this is set by the input to the algo (very early tests was using winsize 9)
 
@@ -76,8 +82,8 @@ pkl_file = open('data.pkl', 'rb')
 data1 = pickle.load(pkl_file)"""
 
 
-pred_outs_inds = df_in.copy()
-pred_outs_inds[pd.notnull(pred_outs_inds)] = 0
+# pred_outs_inds = df_in.copy() # we set the indexes for all prediction algs in the begining of the program
+# pred_outs_inds[pd.notnull(pred_outs_inds)] = 0
 
 strt = 6  # start from the 4th row (i.e. 6-2) row of the input dataframe
 while strt < len(df3.index) - win_size:
