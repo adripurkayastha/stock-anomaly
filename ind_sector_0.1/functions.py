@@ -4,6 +4,7 @@ Created on Feb 1, 2015
 @author: kooshag
 '''
 
+
 import pandas as pd
 import numpy as np
 import scipy.stats as stats
@@ -195,10 +196,19 @@ def df_to_arr(df):
     return arr
 
 
-def kg_pred(df_sub):
+def CAD_pred(df_sub, cent_mode):
     df = df_sub
+    centroid_mode = cent_mode
+
     # centroid calculation:
-    centroid = pd.Series(df.mean(axis=1), index=df.index)  # mean of each row
+    if centroid_mode == 'mean':
+        centroid = pd.Series(df.mean(axis=1), index=df.index)  # mean of each row
+    elif centroid_mode == 'median':
+        centroid = pd.Series(df.median(axis=1), index=df.index)
+    elif centroid_mode == 'mode':
+        centroid = pd.Series(df.mode(axis=1)[0], index=df.index) #the return type of mode is dataframe thus we need to get the first column
+    else:
+        print("ERROR: the type of centroid is undefined")
 
     # add centroid to the data frame
     df_corr = df.copy()
@@ -278,6 +288,9 @@ def arima_pred2(df, arima_inds):
     for col in df.columns:
         sigma = df[col].std()
         mu = df[col].mean()
+
+        if sigma <= 0: # sigma 0 spits an error, replace with a very small number
+            sigma = 0.0000001
 
         pred = df[col].copy()
         for ind in df[col].index:
