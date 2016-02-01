@@ -1,10 +1,8 @@
 '''
-Created on Feb 1, 2015
-
 @author: kooshag
 '''
 
-
+import sys
 import pandas as pd
 import numpy as np
 import scipy.stats as stats
@@ -202,11 +200,24 @@ def CAD_pred(df_sub, cent_mode):
 
     # centroid calculation:
     if centroid_mode == 'mean':
-        centroid = pd.Series(df.mean(axis=1), index=df.index)  # mean of each row
+        centroid = pd.Series(df.mean(axis=1), index=df.index)
+
     elif centroid_mode == 'median':
-        centroid = pd.Series(df.median(axis=1), index=df.index)
+            centroid = pd.Series(df.median(axis=1), index=df.index)
+
     elif centroid_mode == 'mode':
-        centroid = pd.Series(df.mode(axis=1)[0], index=df.index) #the return type of mode is dataframe thus we need to get the first column
+        df_tmp = df.round(3)
+        if df_tmp.mode(axis=1).empty:
+            centroid = pd.Series([np.NaN], index=df.index)
+        else:
+            centroid = pd.Series(df_tmp.mode(axis=1)[0], index=df.index)
+        print(centroid)
+
+    elif centroid_mode == 'max_prob':
+        #TODO: write a function to calculate the max prob
+        order_df(df)
+        pass
+
     else:
         print("ERROR: the type of centroid is undefined")
 
@@ -307,3 +318,23 @@ def arima_pred2(df, arima_inds):
 
 def f2(p,r):
     return 5 * p * r / ((4*p)+r)
+
+
+def order_df(df):
+    df_tmp = df.copy()
+    vals=df_tmp.values
+    arr = vals.sort(axis=0)
+    df_ordered = pd.DataFrame(vals, index=df.index, columns=df.columns)
+    return df_ordered
+
+
+"""
+def get_max_prob(dff):
+    while col in dff.columns:
+        dff.iloc[]
+
+"""
+
+
+
+
