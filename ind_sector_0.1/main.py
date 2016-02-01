@@ -5,7 +5,6 @@ import csv
 
 import functions as fn
 
-
 __author__ = 'kooshag'
 
 '''
@@ -16,7 +15,6 @@ __author__ = 'kooshag'
 4. calculate error given df, df_pred and error measure (return df_err)
 5. plotting
 '''
-
 
 
 def compute(fname, path, winsize=30):
@@ -38,7 +36,7 @@ def compute(fname, path, winsize=30):
     df3 = (df3 / df3.shift(1)) - 1
 
     df_in.round(4)
-    df3.round(4) # round dataframes to 5 decimal
+    df3.round(4)  # round dataframes to 5 decimal
 
     df_no_outs = df3.copy()
     df_with_outs = df3.copy()
@@ -85,14 +83,14 @@ def compute(fname, path, winsize=30):
     # CAD_mean_pred_outs_inds = df_in.copy() # we set the indexes for all prediction algs in the begining of the program
     # CAD_mean_pred_outs_inds[pd.notnull(CAD_mean_pred_outs_inds)] = 0
 
-    strt = 6 # start from the 4th row (i.e. 6-2) row of the input dataframe
+    strt = 6  # start from the 4th row (i.e. 6-2) row of the input dataframe
 
     while strt < len(df3.index) - win_size:
         strt -= 2
         # call CAD prediction for current df
         df_sub = df3.iloc[strt: strt + win_size, :]
-        #k CAD_mean_preds_inds = fn.CAD_pred(df_sub, centroid_modes['mean'])[0]
-        #k CAD_median_preds_inds = fn.CAD_pred(df_sub, centroid_modes['median'])[0]
+        # k CAD_mean_preds_inds = fn.CAD_pred(df_sub, centroid_modes['mean'])[0]
+        # k CAD_median_preds_inds = fn.CAD_pred(df_sub, centroid_modes['median'])[0]
         CAD_mode_preds_inds = fn.CAD_pred(df_sub, centroid_modes['mode'])[0]
 
         # update df_inds
@@ -106,8 +104,8 @@ k"""
             CAD_mode_pred_outs_inds.loc[inx] = CAD_mode_preds_inds.loc[inx]
 
         # call kNN and Random Walk for current df
-        #k df_knn_inds = fn.knn_preds(df_sub, df_knn_inds, k=4)
-        #k df_arima_inds = fn.arima_pred2(df_sub, df_arima_inds)
+        # k df_knn_inds = fn.knn_preds(df_sub, df_knn_inds, k=4)
+        # k df_arima_inds = fn.arima_pred2(df_sub, df_arima_inds)
 
         # print("at indx = {0} date = {1} out of {2}".format(strt, df3.iloc[strt].index, len(df3.index)/win_size))
         # print("at indx = ", strt)
@@ -122,11 +120,11 @@ k """
     CAD_mode_prec, CAD_mode_rec = fn.get_fmeasure(df_outs_ind, CAD_mode_pred_outs_inds)
     CAD_mode_f2 = fn.f2(CAD_mode_prec, CAD_mode_rec)
 
-    #k knn_prec, knn_rec = fn.get_fmeasure(df_outs_ind, df_knn_inds)
-    #k knn_f2 = fn.f2(knn_prec, knn_rec)
+    # k knn_prec, knn_rec = fn.get_fmeasure(df_outs_ind, df_knn_inds)
+    # k knn_f2 = fn.f2(knn_prec, knn_rec)
 
-    #k arima_prec, arima_rec = fn.get_fmeasure(df_outs_ind, df_arima_inds)
-    #k arima_f2 = fn.f2(arima_prec, arima_rec)
+    # k arima_prec, arima_rec = fn.get_fmeasure(df_outs_ind, df_arima_inds)
+    # k arima_f2 = fn.f2(arima_prec, arima_rec)
 
     print("               precision\t\t\trecall\t\t\tF2")
     """k print("kg             {0}\t\t{1}\t\t{2}\n"
@@ -136,7 +134,6 @@ k """
                                                       arima_prec, arima_rec, arima_f2))
     """
     print("kg             {0}\t\t{1}\t\t{2}\n".format(CAD_mode_prec, CAD_mode_rec, CAD_mode_f2))
-
 
 
 print(sys.version, pd.__version__, np.__version__)
@@ -149,26 +146,15 @@ lst_files = ["SnP_consumer_stap_weekly.csv", "SnP_consumer_dis_weekly.csv",
              "SnP_financials_daily.csv", "SnP_info_tech_daily.csv", "SnP_financials_weekly.csv",
              "SnP_energy_weekly", "SnP_energy_daily"]
 
+# TODO change input data to use compustat
 
-#k win_sizes = [15, 20, 24, 30, 35]
+# k win_sizes = [15, 20, 24, 30, 35]
 win_sizes = [15]
 
-centroid_modes = {'mean': 'mean', 'mode': 'mode', 'median': 'median', 'max_prob':'max_prob'}
+centroid_modes = {'mean': 'mean', 'mode': 'mode', 'median': 'median', 'max_prob': 'max_prob'}
 
 for file in lst_files:
     fname = file
     for win in win_sizes:
         print("======================\n=====   {0}\t\twin_size:{1}\n======================".format(fname, win))
         compute(fname, filePath, win)
-
-
-
-"""
-TODO:
-- bound numbers to 6 dec point: done
-- fix median: done
-- fix the bug on centroid mode
-- fix max prob
-- change input data to use compustat
-
-"""

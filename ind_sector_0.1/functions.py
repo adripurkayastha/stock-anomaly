@@ -13,7 +13,6 @@ from sklearn.neighbors import NearestNeighbors
 import statsmodels.tsa.api as tsa
 
 
-
 def get_dist(dfin, df_preds, error_type="Euclidean"):
     """
     calculate prediction error
@@ -36,7 +35,6 @@ def getChunk(start, win, frq):
         rng = pd.date_range(start, periods=win, freq='W')
     else:
         print('ERROR: the frequency is not D nor W')
-
 
 
 def predict_t(df_in, corr):
@@ -78,7 +76,7 @@ def replace_outs(df, numOuts, df_outs_ind):
 
         if p_val > 0.05:  # this means the distribution is normal
             eps = 0.002 * np.random.random_sample(1) - 0.001  # epsilon is a random float in [-0.001, 0.001]
-                                                                # *** this threshold should be set in experiments
+            # *** this threshold should be set in experiments
             df_out.iloc[row, col] = 3 * df.iloc[:, col].std() + eps
             # print("for row {0} and column {1} we have {2} and real val is {3}".format(row, col, df_out.iloc[row, col], df_in.iloc[row, col]))
             df_outs_ind.iloc[row, col] = 1
@@ -133,7 +131,7 @@ def replace_outs2(df, df_outs_ind, outs_ratio):
 
         if p_val > 0.05:  # this means the distribution is normal
             eps = 0.002 * np.random.random_sample(1) - 0.001  # epsilon is a random float in [-0.001, 0.001]
-                                                                # *** this threshold should be set in experiments
+            # *** this threshold should be set in experiments
             # eps += 1000 # this was for testing
             df_out.loc[row, col] = 3 * df.loc[:, col].std() + eps
             # print("for row {0} and column {1} we have {2} and real val is {3}".format(row, col, df_out.iloc[row, col], df_in.iloc[row, col]))
@@ -166,15 +164,15 @@ def get_pred_outs(preds, df_in):
         for indx in df_dist.index:
             if df_dist[col].loc[indx] > df_in[col].std():
                 df_TF[col].loc[indx] = 1
-                #print(col, indx, df_TF[col].loc[indx])
-            #print(indx, col, df_dist.loc[indx, col], df_in[col].std())
+                # print(col, indx, df_TF[col].loc[indx])
+                # print(indx, col, df_dist.loc[indx, col], df_in[col].std())
 
     return df_TF
 
 
 def get_fmeasure(df, df_preds):
-    y = df_to_arr(df)# these are df.values
-    y_hat = df_to_arr(df_preds)# this would be the predictions
+    y = df_to_arr(df)  # these are df.values
+    y_hat = df_to_arr(df_preds)  # this would be the predictions
 
     target_names = [0, 1]
     report = classification_report(y, y_hat, target_names)
@@ -203,7 +201,7 @@ def CAD_pred(df_sub, cent_mode):
         centroid = pd.Series(df.mean(axis=1), index=df.index)
 
     elif centroid_mode == 'median':
-            centroid = pd.Series(df.median(axis=1), index=df.index)
+        centroid = pd.Series(df.median(axis=1), index=df.index)
 
     elif centroid_mode == 'mode':
         df_tmp = df.round(3)
@@ -214,7 +212,7 @@ def CAD_pred(df_sub, cent_mode):
         print(centroid)
 
     elif centroid_mode == 'max_prob':
-        #TODO: write a function to calculate the max prob
+        # TODO: write a function to calculate the max prob
         order_df(df)
         pass
 
@@ -227,7 +225,7 @@ def CAD_pred(df_sub, cent_mode):
     df_corr = df_corr.corr()
     corr_series = df_corr['centroid']
 
-    df_error = df.copy() # should be removed
+    df_error = df.copy()  # should be removed
     sub_preds = predict_t(df, corr_series)
     sub_pred_outs_inds = get_pred_outs(sub_preds, df)
     return sub_pred_outs_inds, sub_preds
@@ -247,7 +245,8 @@ def knn_preds(df, df_knn_inds, k=4):
 
         X_tmp = np.reshape(X, (len(X), 1))  # convert X to a 2D array
         X_2D = np.zeros((len(X), 2))
-        X_2D[:, 1:] = X_tmp  #  X_2D includes values of tickers at one time stamp (e.g. values of WALT DISNEY  COMCAST 'A'  HOME DEPOT  at 2014-04-14 )
+        X_2D[:,
+        1:] = X_tmp  # X_2D includes values of tickers at one time stamp (e.g. values of WALT DISNEY  COMCAST 'A'  HOME DEPOT  at 2014-04-14 )
 
         nbrs = NearestNeighbors(n_neighbors=k, algorithm='ball_tree').fit(X_2D)
         distances, indices = nbrs.kneighbors(X_2D)
@@ -255,19 +254,18 @@ def knn_preds(df, df_knn_inds, k=4):
         # print(distances)
 
         # dists = scp.spatial.distance.cdist(X_2D, X_2D, 'euclidean')
-        sum_arr = distances.sum(axis=1) #  sum over rows gives sum kNN for each ticker (e.g. "WALT DISNEY")
-                                    # at timestamp idx
+        sum_arr = distances.sum(axis=1)  # sum over rows gives sum kNN for each ticker (e.g. "WALT DISNEY")
+        # at timestamp idx
         mu = sum_arr.mean()
         sigma = sum_arr.std()
         for sum, row_ind in zip(sum_arr, row2.index):
-            if sum > 1 * sigma + mu: # could be changed to 2*sigma + mu
+            if sum > 1 * sigma + mu:  # could be changed to 2*sigma + mu
                 df_knn_inds[row_ind].loc[idx] = 1
 
     return df_knn_inds
 
 
 def arima_pred(df, arima_inds):
-
     arima_preds = df.copy()
     for col in df.columns:
 
@@ -275,7 +273,7 @@ def arima_pred(df, arima_inds):
 
         arma = tsa.ARMA(arr, order=(0, 1, 0))
         results = arma.fit()
-        res = results.predict(0, len(arr)-1)
+        res = results.predict(0, len(arr) - 1)
 
         for item, ind in zip(res, arima_preds.index):
             if np.isnan(arima_preds[col].loc[ind]):
@@ -286,21 +284,19 @@ def arima_pred(df, arima_inds):
         mu = ts.mean()
         sigma = ts.std()
         for idx in ts.index:
-            if ts.loc[idx] > 3 * sigma + mu:    # could be changed to 2*sigma + mu
+            if ts.loc[idx] > 3 * sigma + mu:  # could be changed to 2*sigma + mu
                 arima_inds[col].loc[idx] = 1
 
     return arima_inds
 
 
 def arima_pred2(df, arima_inds):
-
-
     # arima_preds = df.copy()
     for col in df.columns:
         sigma = df[col].std()
         mu = df[col].mean()
 
-        if sigma <= 0: # sigma 0 spits an error, replace with a very small number
+        if sigma <= 0:  # sigma 0 spits an error, replace with a very small number
             sigma = 0.0000001
 
         pred = df[col].copy()
@@ -310,19 +306,19 @@ def arima_pred2(df, arima_inds):
         arima_preds = pred.shift(1)
 
         for ind in arima_preds.index:
-            if arima_preds[ind] > 3 * sigma + mu:    # could be changed to 2*sigma + mu
+            if arima_preds[ind] > 3 * sigma + mu:  # could be changed to 2*sigma + mu
                 arima_inds[col].loc[ind] = 1
 
     return arima_inds
 
 
-def f2(p,r):
-    return 5 * p * r / ((4*p)+r)
+def f2(p, r):
+    return 5 * p * r / ((4 * p) + r)
 
 
 def order_df(df):
     df_tmp = df.copy()
-    vals=df_tmp.values
+    vals = df_tmp.values
     arr = vals.sort(axis=0)
     df_ordered = pd.DataFrame(vals, index=df.index, columns=df.columns)
     return df_ordered
@@ -334,7 +330,3 @@ def get_max_prob(dff):
         dff.iloc[]
 
 """
-
-
-
-
