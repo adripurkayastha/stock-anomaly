@@ -1,7 +1,3 @@
-'''
-@author: kooshag
-'''
-
 import sys
 import pandas as pd
 import numpy as np
@@ -10,7 +6,10 @@ import random as rnd
 
 from sklearn.metrics import classification_report, recall_score, precision_score
 from sklearn.neighbors import NearestNeighbors
+from sklearn.neighbors import KernelDensity
 import statsmodels.tsa.api as tsa
+
+__author__ = 'Koosha'
 
 
 def get_dist(dfin, df_preds, error_type="Euclidean"):
@@ -196,7 +195,7 @@ def CAD_pred(df_sub, cent_mode):
     df = df_sub
     centroid_mode = cent_mode
 
-    # centroid calculation:
+    # ---- centroid calculation:
     if centroid_mode == 'mean':
         centroid = pd.Series(df.mean(axis=1), index=df.index)
 
@@ -209,12 +208,9 @@ def CAD_pred(df_sub, cent_mode):
             centroid = pd.Series([np.NaN], index=df.index)
         else:
             centroid = pd.Series(df_tmp.mode(axis=1)[0], index=df.index)
-        print(centroid)
 
     elif centroid_mode == 'max_prob':
-        # TODO: write a function to calculate the max prob
-        order_df(df)
-        pass
+        centroid = pd.Series(max_prob(df), index=df.index)
 
     else:
         print("ERROR: the type of centroid is undefined")
@@ -245,8 +241,7 @@ def knn_preds(df, df_knn_inds, k=4):
 
         X_tmp = np.reshape(X, (len(X), 1))  # convert X to a 2D array
         X_2D = np.zeros((len(X), 2))
-        X_2D[:,
-        1:] = X_tmp  # X_2D includes values of tickers at one time stamp (e.g. values of WALT DISNEY  COMCAST 'A'  HOME DEPOT  at 2014-04-14 )
+        X_2D[:,1:] = X_tmp  # X_2D includes values of tickers at one time stamp (e.g. values of WALT DISNEY  COMCAST 'A'  HOME DEPOT  at 2014-04-14 )
 
         nbrs = NearestNeighbors(n_neighbors=k, algorithm='ball_tree').fit(X_2D)
         distances, indices = nbrs.kneighbors(X_2D)
@@ -316,17 +311,41 @@ def f2(p, r):
     return 5 * p * r / ((4 * p) + r)
 
 
-def order_df(df):
+def kde_sklearn(x, x_grid, bandwidth=0.2, **kwargs):
+    kde_skl = KernelDensity(bandwidth=bandwidth, **kwargs)
+    kde_skl.fit(x[:, np.newaxis])
+    # score_samples() returns the log-likelihood of the samples
+    log_pdf = kde_skl.score_samples(x_grid[:, np.newaxis])
+    return np.exp(log_pdf)
+
+
+def max_prob(df):
     df_tmp = df.copy()
-    vals = df_tmp.values
-    arr = vals.sort(axis=0)
-    df_ordered = pd.DataFrame(vals, index=df.index, columns=df.columns)
-    return df_ordered
+
+    arr = []
+    for ind in df_tmp.index:
+        row = df_tmp.loc[ind]
+        d = row.dropna().values
+        # d = d.dropna()
+        if len(d)==0:
+            centre = np.NaN
+            arr.append(centre)
+            continue
+
+        # arr = vals.sort(axis=0)
+        # df_ordered = pd.DataFrame(vals, index=df.index, columns=df.columns)
+
+        x_grid = np.linspace(d.min(), d.max(), 50)
+        x_grid = x_grid.reshape(-1,1)
+        d = d.reshape(-1,1)
+
+        kde = KernelDensity().fit(d)
+        log_dens = kde.score_samples(x_grid)
+        vals = np.exp(log_dens).round(4)
+        centre = x_grid[vals.argmax()][0]
+        centre2 = round(centre, 4)
+        # TODO first element adds unnecessary decimal places (use decimal places class to fix)
+        arr.append(centre2)
+    return arr
 
 
-"""
-def get_max_prob(dff):
-    while col in dff.columns:
-        dff.iloc[]
-
-"""

@@ -5,7 +5,7 @@ import csv
 
 import functions as fn
 
-__author__ = 'kooshag'
+__author__ = 'Koosha'
 
 '''
 1. extract a df given a window size (return a df)
@@ -47,8 +47,9 @@ def compute(fname, path, winsize=30):
 
     # set outlier index for all prediction methods to 0
     CAD_mean_pred_outs_inds = df_outs_ind.copy()
-    CAD_mode_pred_outs_inds = df_outs_ind.copy()
     CAD_median_pred_outs_inds = df_outs_ind.copy()
+    CAD_mode_pred_outs_inds = df_outs_ind.copy()
+    CAD_max_prob_pred_outs_inds = df_outs_ind.copy()
     df_knn_inds = df_outs_ind.copy()
     df_arima_inds = df_outs_ind.copy()
 
@@ -92,6 +93,7 @@ def compute(fname, path, winsize=30):
         # k CAD_mean_preds_inds = fn.CAD_pred(df_sub, centroid_modes['mean'])[0]
         # k CAD_median_preds_inds = fn.CAD_pred(df_sub, centroid_modes['median'])[0]
         CAD_mode_preds_inds = fn.CAD_pred(df_sub, centroid_modes['mode'])[0]
+        CAD_max_prob_preds_inds = fn.CAD_pred(df_sub, centroid_modes['max_prob'])[0]
 
         # update df_inds
         """k for inx in CAD_mean_preds_inds.index:
@@ -102,6 +104,10 @@ def compute(fname, path, winsize=30):
 k"""
         for inx in CAD_mode_preds_inds.index:
             CAD_mode_pred_outs_inds.loc[inx] = CAD_mode_preds_inds.loc[inx]
+
+        #k for inx in CAD_max_prob_preds_inds.index:
+        #k     CAD_max_prob_pred_outs_inds.loc[inx] = CAD_max_prob_preds_inds.loc[inx]
+
 
         # call kNN and Random Walk for current df
         # k df_knn_inds = fn.knn_preds(df_sub, df_knn_inds, k=4)
@@ -116,9 +122,15 @@ k"""
 
     CAD_median_prec, CAD_median_rec = fn.get_fmeasure(df_outs_ind, CAD_median_pred_outs_inds)
     CAD_median_f2 = fn.f2(CAD_median_prec, CAD_median_rec)
+
+    CAD_mode_prec, CAD_mode_rec = fn.get_fmeasure(df_outs_ind, CAD_mode_pred_outs_inds)
+    CAD_mode_f2 = fn.f2(CAD_mode_prec, CAD_mode_rec)
 k """
     CAD_mode_prec, CAD_mode_rec = fn.get_fmeasure(df_outs_ind, CAD_mode_pred_outs_inds)
     CAD_mode_f2 = fn.f2(CAD_mode_prec, CAD_mode_rec)
+
+    #k CAD_max_prob_prec, CAD_max_prob_rec = fn.get_fmeasure(df_outs_ind, CAD_max_prob_pred_outs_inds)
+    #k CAD_max_prob_f2 = fn.f2(CAD_max_prob_prec, CAD_max_prob_rec)
 
     # k knn_prec, knn_rec = fn.get_fmeasure(df_outs_ind, df_knn_inds)
     # k knn_f2 = fn.f2(knn_prec, knn_rec)
@@ -134,6 +146,8 @@ k """
                                                       arima_prec, arima_rec, arima_f2))
     """
     print("kg             {0}\t\t{1}\t\t{2}\n".format(CAD_mode_prec, CAD_mode_rec, CAD_mode_f2))
+    #k print("kg             {0}\t\t{1}\t\t{2}\n".format(CAD_max_prob_prec, CAD_max_prob_rec, CAD_max_prob_f2))
+
 
 
 print(sys.version, pd.__version__, np.__version__)
@@ -148,13 +162,17 @@ lst_files = ["SnP_consumer_stap_weekly.csv", "SnP_consumer_dis_weekly.csv",
 
 # TODO change input data to use compustat
 
-# k win_sizes = [15, 20, 24, 30, 35]
-win_sizes = [15]
+win_sizes = [15, 20, 24, 30, 35]
 
 centroid_modes = {'mean': 'mean', 'mode': 'mode', 'median': 'median', 'max_prob': 'max_prob'}
 
+print(
+        "dataset,win_size,CAD_mean_prec,CAD_mean_rec,CAD_mean_f2,CAD_median_prec,CAD_median_rec,"
+        "CAD_median_f2,CAD_mode_prec,CAD_mode_rec,CAD_mode_f2,knn_prec,knn_rec,knn_f2,arima_prec,"
+        "arima_rec,arima_f2")
+
 for file in lst_files:
     fname = file
+
     for win in win_sizes:
-        print("======================\n=====   {0}\t\twin_size:{1}\n======================".format(fname, win))
         compute(fname, filePath, win)
