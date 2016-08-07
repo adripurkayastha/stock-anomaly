@@ -17,16 +17,17 @@ __author__ = 'Koosha'
 '''
 
 
-def compute(fname, path, winsize=30):
-    df = pd.read_csv(filePath + fileName,
+def compute(fname, fpath, winsize=30):
+    df = pd.read_csv(fpath + fname,
                      sep=',', header=0, parse_dates=[0], dayfirst=True,
                      index_col=0, skiprows=[0, 1, 2, 4])
 
-
-    # xstart, xend = 0, 500  # xstart, xend = 1, 20
-    # df1 = (df.ix[xstart:xend, 1:5])
     df1 = df
     outs_ratio = 0.005  # this is input param
+
+    # xstart, xend = 0, 500  # xstart, xend = 1, 20 # this is for testing
+    # df1 = (df.ix[xstart:xend, 1:5])
+
 
     """ calculate returns
         NOTE: make sure the last day is the first row in the input dataset is sorted"""
@@ -35,8 +36,8 @@ def compute(fname, path, winsize=30):
     df3 = df_in.copy()
     df3 = (df3 / df3.shift(1)) - 1
 
-    df_in.round(4)
-    df3.round(4)  # round dataframes to 5 decimal
+    df_in = df_in.round(4)
+    df3 = df3.round(4)  # round dataframes to 5 decimal
 
     df_no_outs = df3.copy()
     df_with_outs = df3.copy()
@@ -66,7 +67,7 @@ def compute(fname, path, winsize=30):
         df_sub_in = df_no_outs.iloc[df_sub_start:df_sub_end, :].copy()
 
         df_sub_out, df_outs_ind = fn.replace_outs2(df_sub_in, df_outs_ind, outs_ratio)
-        # print(df_sub_out, df_outs_ind)
+        # print("number of outliers injected: ",df_outs_ind.sum(axis=1).sum())
 
         for inx in df_sub_out.index:
             df_with_outs.loc[inx] = df_sub_out.loc[inx]
@@ -90,34 +91,34 @@ def compute(fname, path, winsize=30):
         strt -= 2
         # call CAD prediction for current df
         df_sub = df3.iloc[strt: strt + win_size, :]
-        # k CAD_mean_preds_inds = fn.CAD_pred(df_sub, centroid_modes['mean'])[0]
-        # k CAD_median_preds_inds = fn.CAD_pred(df_sub, centroid_modes['median'])[0]
+        CAD_mean_preds_inds = fn.CAD_pred(df_sub, centroid_modes['mean'])[0]
+        CAD_median_preds_inds = fn.CAD_pred(df_sub, centroid_modes['median'])[0]
         CAD_mode_preds_inds = fn.CAD_pred(df_sub, centroid_modes['mode'])[0]
         CAD_max_prob_preds_inds = fn.CAD_pred(df_sub, centroid_modes['max_prob'])[0]
 
         # update df_inds
-        """k for inx in CAD_mean_preds_inds.index:
+        for inx in CAD_mean_preds_inds.index:
             CAD_mean_pred_outs_inds.loc[inx] = CAD_mean_preds_inds.loc[inx]
 
-        for inx in CAD_median_preds_inds.index:
+        #k for inx in CAD_median_preds_inds.index:
             CAD_median_pred_outs_inds.loc[inx] = CAD_median_preds_inds.loc[inx]
-k"""
-        for inx in CAD_mode_preds_inds.index:
+
+        #k for inx in CAD_mode_preds_inds.index:
             CAD_mode_pred_outs_inds.loc[inx] = CAD_mode_preds_inds.loc[inx]
 
         #k for inx in CAD_max_prob_preds_inds.index:
-        #k     CAD_max_prob_pred_outs_inds.loc[inx] = CAD_max_prob_preds_inds.loc[inx]
+            CAD_max_prob_pred_outs_inds.loc[inx] = CAD_max_prob_preds_inds.loc[inx]
 
 
         # call kNN and Random Walk for current df
-        # k df_knn_inds = fn.knn_preds(df_sub, df_knn_inds, k=4)
-        # k df_arima_inds = fn.arima_pred2(df_sub, df_arima_inds)
+        df_knn_inds = fn.knn_preds(df_sub, df_knn_inds, k=4)
+        df_arima_inds = fn.arima_pred2(df_sub, df_arima_inds)
 
         # print("at indx = {0} date = {1} out of {2}".format(strt, df3.iloc[strt].index, len(df3.index)/win_size))
         # print("at indx = ", strt)
         strt += win_size
 
-    """k CAD_mean_prec, CAD_mean_rec = fn.get_fmeasure(df_outs_ind, CAD_mean_pred_outs_inds)
+    CAD_mean_prec, CAD_mean_rec = fn.get_fmeasure(df_outs_ind, CAD_mean_pred_outs_inds)
     CAD_mean_f2 = fn.f2(CAD_mean_prec, CAD_mean_rec)
 
     CAD_median_prec, CAD_median_rec = fn.get_fmeasure(df_outs_ind, CAD_median_pred_outs_inds)
@@ -125,54 +126,59 @@ k"""
 
     CAD_mode_prec, CAD_mode_rec = fn.get_fmeasure(df_outs_ind, CAD_mode_pred_outs_inds)
     CAD_mode_f2 = fn.f2(CAD_mode_prec, CAD_mode_rec)
-k """
+
+
     CAD_mode_prec, CAD_mode_rec = fn.get_fmeasure(df_outs_ind, CAD_mode_pred_outs_inds)
     CAD_mode_f2 = fn.f2(CAD_mode_prec, CAD_mode_rec)
 
-    #k CAD_max_prob_prec, CAD_max_prob_rec = fn.get_fmeasure(df_outs_ind, CAD_max_prob_pred_outs_inds)
-    #k CAD_max_prob_f2 = fn.f2(CAD_max_prob_prec, CAD_max_prob_rec)
+    CAD_max_prob_prec, CAD_max_prob_rec = fn.get_fmeasure(df_outs_ind, CAD_max_prob_pred_outs_inds)
+    CAD_max_prob_f2 = fn.f2(CAD_max_prob_prec, CAD_max_prob_rec)
 
-    # k knn_prec, knn_rec = fn.get_fmeasure(df_outs_ind, df_knn_inds)
-    # k knn_f2 = fn.f2(knn_prec, knn_rec)
+    knn_prec, knn_rec = fn.get_fmeasure(df_outs_ind, df_knn_inds)
+    knn_f2 = fn.f2(knn_prec, knn_rec)
 
-    # k arima_prec, arima_rec = fn.get_fmeasure(df_outs_ind, df_arima_inds)
-    # k arima_f2 = fn.f2(arima_prec, arima_rec)
+    arima_prec, arima_rec = fn.get_fmeasure(df_outs_ind, df_arima_inds)
+    arima_f2 = fn.f2(arima_prec, arima_rec)
 
-    print("               precision\t\t\trecall\t\t\tF2")
-    """k print("kg             {0}\t\t{1}\t\t{2}\n"
+    # print("               precision\t\t\trecall\t\t\tF2") # this is for testing mode
+    print("kg             {0}\t\t{1}\t\t{2}\n"
           "kNN            {3}\t\t{4}\t\t{5}\n"
           "RandomWalk     {6}\t\t{7}\t\t{8}\n".format(CAD_mean_prec, CAD_mean_rec, CAD_mean_f2,
                                                       knn_prec, knn_rec, knn_f2,
                                                       arima_prec, arima_rec, arima_f2))
-    """
-    print("kg             {0}\t\t{1}\t\t{2}\n".format(CAD_mode_prec, CAD_mode_rec, CAD_mode_f2))
-    #k print("kg             {0}\t\t{1}\t\t{2}\n".format(CAD_max_prob_prec, CAD_max_prob_rec, CAD_max_prob_f2))
+
+    # print("kg             {0}\t\t{1}\t\t{2}\n".format(CAD_mode_prec, CAD_mode_rec, CAD_mode_f2)) # this is for testing mode
+    print("kg             {0}\t\t{1}\t\t{2}\n".format(CAD_max_prob_prec, CAD_max_prob_rec, CAD_max_prob_f2))
 
 
 
-print(sys.version, pd.__version__, np.__version__)
 
-filePath = '/Users/kooshag/Google Drive/code/data/'
-fileName = 'SnP_consumer_dis_daily.csv'
+if __name__ == '__main__':
 
-lst_files = ["SnP_consumer_stap_weekly.csv", "SnP_consumer_dis_weekly.csv",
-             "SnP_info_technology_weekly.csv", "SnP_consumer_stap_daily.csv", "SnP_consumer_dis_daily.csv",
-             "SnP_financials_daily.csv", "SnP_info_tech_daily.csv", "SnP_financials_weekly.csv",
-             "SnP_energy_weekly", "SnP_energy_daily"]
+    print(sys.version, pd.__version__, np.__version__)
 
-# TODO change input data to use compustat
+    filePath = '/Users/kooshag/Google Drive/code/data/'
+    fileName = 'SnP_consumer_dis_daily.csv'
 
-win_sizes = [15, 20, 24, 30, 35]
+    test_file = "TEST__SnP_consumer_stap_weekly.csv"
+    lst_files = ["SnP_consumer_stap_weekly.csv", "SnP_consumer_dis_weekly.csv",
+                 "SnP_info_technology_weekly.csv", "SnP_consumer_stap_daily.csv", "SnP_consumer_dis_daily.csv",
+                 "SnP_financials_daily.csv", "SnP_info_tech_daily.csv", "SnP_financials_weekly.csv",
+                 "SnP_energy_weekly", "SnP_energy_daily"]
 
-centroid_modes = {'mean': 'mean', 'mode': 'mode', 'median': 'median', 'max_prob': 'max_prob'}
+    # TODO change input data to use compustat
 
-print(
-        "dataset,win_size,CAD_mean_prec,CAD_mean_rec,CAD_mean_f2,CAD_median_prec,CAD_median_rec,"
-        "CAD_median_f2,CAD_mode_prec,CAD_mode_rec,CAD_mode_f2,knn_prec,knn_rec,knn_f2,arima_prec,"
-        "arima_rec,arima_f2")
+    win_sizes = [15, 20, 24, 30, 35]
 
-for file in lst_files:
-    fname = file
+    centroid_modes = {'mean': 'mean', 'mode': 'mode', 'median': 'median', 'max_prob': 'max_prob'}
 
-    for win in win_sizes:
-        compute(fname, filePath, win)
+    print(
+            "TESTING MODE.dataset,win_size,CAD_mean_prec,CAD_mean_rec,CAD_mean_f2,CAD_median_prec,CAD_median_rec,"
+            "CAD_median_f2,CAD_mode_prec,CAD_mode_rec,CAD_mode_f2,knn_prec,knn_rec,knn_f2,arima_prec,"
+            "arima_rec,arima_f2")
+
+    for file in lst_files:
+        fname = file
+
+        for win in win_sizes:
+            compute(fname, filePath, win)
